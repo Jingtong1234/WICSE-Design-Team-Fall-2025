@@ -1,0 +1,28 @@
+{
+  "name": "wicse-design-team-fall-2025",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jingtong1234/WICSE-Design-Team-Fall-2025.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jingtong1234/WICSE-Design-Team-Fall-2025/issues"
+  },
+  "homepage": "https://github.com/Jingtong1234/WICSE-Design-Team-Fall-2025#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
