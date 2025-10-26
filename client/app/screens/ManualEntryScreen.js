@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useReceipt } from '../../src/contexts/ReceiptContext';
 
+
 const ManualEntryScreen = ({ navigation }) => {
   const { addReceipt } = useReceipt();
   const [items, setItems] = useState([]);
@@ -145,7 +146,7 @@ const ManualEntryScreen = ({ navigation }) => {
                   onChangeText={(text) =>
                     setCurrentItem({ ...currentItem, price: text })
                   }
-                  placeholder="$0.00"
+                  placeholder="0.00"
                   placeholderTextColor="#999"
                   keyboardType="decimal-pad"
                 />
@@ -218,7 +219,7 @@ const ManualEntryScreen = ({ navigation }) => {
                   onChangeText={(text) =>
                     setReceiptDetails({ ...receiptDetails, tax: text })
                   }
-                  placeholder="$0.00"
+                  placeholder="0.00"
                   placeholderTextColor="#999"
                   keyboardType="decimal-pad"
                 />
@@ -232,7 +233,7 @@ const ManualEntryScreen = ({ navigation }) => {
                   onChangeText={(text) =>
                     setReceiptDetails({ ...receiptDetails, tip: text })
                   }
-                  placeholder="$0.00"
+                  placeholder="0.00"
                   placeholderTextColor="#999"
                   keyboardType="decimal-pad"
                 />
@@ -246,7 +247,7 @@ const ManualEntryScreen = ({ navigation }) => {
                   onChangeText={(text) =>
                     setReceiptDetails({ ...receiptDetails, ccFee: text })
                   }
-                  placeholder="$0.00"
+                  placeholder="0.00"
                   placeholderTextColor="#999"
                   keyboardType="decimal-pad"
                 />
