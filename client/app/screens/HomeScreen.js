@@ -51,6 +51,9 @@ const HomeScreen = ({ navigation }) => {
   const navigateToNewGroup = () => {
     closeMenu();
     navigation.navigate('NewGroup');
+  const navigateToReceiptOverview = () => {
+    closeMenu();
+    navigation.navigate('ReceiptOverview');
   };
 
   const getEventText = (event) => {
@@ -138,6 +141,12 @@ const HomeScreen = ({ navigation }) => {
                <Text style={styles.menuItemText}>New Group</Text>
             </TouchableOpacity>
             
+              style={styles.menuItem}
+              onPress={navigateToReceiptOverview}
+            >
+              <Ionicons name="receipt" size={24} color="#007AFF" />
+              <Text style={styles.menuItemText}>Receipts Overview</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>

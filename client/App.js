@@ -8,6 +8,7 @@ import ScanReceiptScreen from './app/screens/ScanReceiptScreen';
 import ManualEntryScreen from './app/screens/ManualEntryScreen';
 import ReviewReceiptScreen from './app/screens/ReviewReceiptScreen';
 import NewGroupScreen from './app/screens/NewGroupScreen';
+import ReceiptOverviewScreen from './app/screens/ReceiptOverviewScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,10 @@ export default function App() {
           <Stack.Screen name="ManualEntry" component={ManualEntryScreen} />
           <Stack.Screen name="ReviewReceipt" component={ReviewReceiptScreen} />
           <Stack.Screen name="NewGroup" component={NewGroupScreen} />
+          <Stack.Screen
+            name="ReceiptOverview"
+            component={ReceiptOverviewScreen}
+          />
         </Stack.Navigator>
       </NavigationContainer>
       <StatusBar style="auto" />
