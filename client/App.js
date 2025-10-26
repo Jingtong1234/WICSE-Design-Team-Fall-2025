@@ -7,6 +7,7 @@ import HomeScreen from './app/screens/HomeScreen';
 import ScanReceiptScreen from './app/screens/ScanReceiptScreen';
 import ManualEntryScreen from './app/screens/ManualEntryScreen';
 import ReviewReceiptScreen from './app/screens/ReviewReceiptScreen';
+import CreateProfile from './screens/CreateProfile';
 import NewGroupScreen from './app/screens/NewGroupScreen';
 import ReceiptOverviewScreen from './app/screens/ReceiptOverviewScreen';
 
@@ -20,7 +21,9 @@ export default function App() {
           screenOptions={{
             headerShown: false,
           }}
+          initialRouteName="CreateProfile"
         >
+          <Stack.Screen name="CreateProfile" component={CreateProfile} />
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="ScanReceipt" component={ScanReceiptScreen} />
           <Stack.Screen name="ManualEntry" component={ManualEntryScreen} />
