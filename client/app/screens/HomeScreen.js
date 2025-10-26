@@ -51,6 +51,8 @@ const HomeScreen = ({ navigation }) => {
   const navigateToNewGroup = () => {
     closeMenu();
     navigation.navigate('NewGroup');
+  };
+
   const navigateToReceiptOverview = () => {
     closeMenu();
     navigation.navigate('ReceiptOverview');
@@ -124,7 +126,6 @@ const HomeScreen = ({ navigation }) => {
               <Ionicons name="camera" size={24} color="#007AFF" />
               <Text style={styles.menuItemText}>Scan Receipt</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.menuItem}
               onPress={navigateToManualEntry}
@@ -132,15 +133,15 @@ const HomeScreen = ({ navigation }) => {
               <Ionicons name="create-outline" size={24} color="#007AFF" />
               <Text style={styles.menuItemText}>Manual Entry</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
-                style={styles.menuItem}
-                onPress={navigateToNewGroup}
+              style={styles.menuItem}
+              onPress={navigateToNewGroup}
             >
               <Ionicons name="people-outline" size={24} color="#007AFF" />
-               <Text style={styles.menuItemText}>New Group</Text>
+              <Text style={styles.menuItemText}>New Group</Text>
             </TouchableOpacity>
-            
+
+            <TouchableOpacity
               style={styles.menuItem}
               onPress={navigateToReceiptOverview}
             >
