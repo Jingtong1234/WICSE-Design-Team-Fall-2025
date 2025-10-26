@@ -7,6 +7,7 @@ import HomeScreen from './app/screens/HomeScreen';
 import ScanReceiptScreen from './app/screens/ScanReceiptScreen';
 import ManualEntryScreen from './app/screens/ManualEntryScreen';
 import ReviewReceiptScreen from './app/screens/ReviewReceiptScreen';
+import NewGroupScreen from './app/screens/NewGroupScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ export default function App() {
           <Stack.Screen name="ScanReceipt" component={ScanReceiptScreen} />
           <Stack.Screen name="ManualEntry" component={ManualEntryScreen} />
           <Stack.Screen name="ReviewReceipt" component={ReviewReceiptScreen} />
+          <Stack.Screen name="NewGroup" component={NewGroupScreen} />
         </Stack.Navigator>
       </NavigationContainer>
       <StatusBar style="auto" />

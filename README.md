@@ -14,4 +14,4 @@ Multi-currency conversion
 Frontend: React Native with Expo
 Backend: Node.js with Express
 Database: TBD 
-Receipt Scanning: TBD
+Receipt Scanning: Veryfi API

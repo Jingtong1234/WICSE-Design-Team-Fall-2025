@@ -48,6 +48,11 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('ManualEntry');
   };
 
+  const navigateToNewGroup = () => {
+    closeMenu();
+    navigation.navigate('NewGroup');
+  };
+
   const getEventText = (event) => {
     if (event.completed) {
       return 'All settled!';
@@ -124,6 +129,15 @@ const HomeScreen = ({ navigation }) => {
               <Ionicons name="create-outline" size={24} color="#007AFF" />
               <Text style={styles.menuItemText}>Manual Entry</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.menuItem}
+                onPress={navigateToNewGroup}
+            >
+              <Ionicons name="people-outline" size={24} color="#007AFF" />
+               <Text style={styles.menuItemText}>New Group</Text>
+            </TouchableOpacity>
+            
           </View>
         </TouchableOpacity>
       </Modal>
