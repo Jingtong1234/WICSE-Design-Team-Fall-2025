@@ -11,7 +11,9 @@
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "multer": "^2.0.2",
-    "node-fetch": "^3.3.2"
+    "multer-storage-cloudinary": "^4.0.0",
+    "node-fetch": "^3.3.2",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
