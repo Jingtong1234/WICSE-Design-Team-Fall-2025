@@ -7,6 +7,7 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useReceipt } from '../../src/contexts/ReceiptContext';
@@ -66,7 +67,18 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
   const [endCurrency, setEndCurrency] = useState('USD');
   
   // Tracks which dropdown is active: 'start', 'end', or null
-  const [activeDropdownType, setActiveDropdownType] = useState(null); 
+  const [activeDropdownType, setActiveDropdownType] = useState(null);
+
+  // Split method state
+  const [splitMethod, setSplitMethod] = useState('dutch'); // 'dutch', 'percentage', 'itemized'
+  const [numPeople, setNumPeople] = useState('1');
+  const [percentageBreakdown, setPercentageBreakdown] = useState([
+    { person: 1, percentage: 0 }
+  ]);
+  const [itemizedBreakdown, setItemizedBreakdown] = useState([
+    { person: 1, items: [] }
+  ]);
+  const [selectedPerson, setSelectedPerson] = useState(null); 
 
   const handleSelectCurrency = (type, value) => {
     if (type === 'start') {
@@ -78,12 +90,101 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
     setActiveDropdownType(null); 
   };
 
+  const handleNumPeopleChange = (text) => {
+    setNumPeople(text);
+    const num = parseInt(text) || 1;
+    
+    // Always re-initialize both breakdowns whenever number of people changes
+    setPercentageBreakdown(
+      Array.from({ length: num }, (_, i) => ({
+        person: i + 1,
+        percentage: 0,
+      }))
+    );
+    setItemizedBreakdown(
+      Array.from({ length: num }, (_, i) => ({
+        person: i + 1,
+        items: [],
+      }))
+    );
+  };
+
+  const handleSplitMethodChange = (method) => {
+    setSplitMethod(method);
+    if (method === 'percentage') {
+      // Initialize percentage breakdown
+      const num = parseInt(numPeople) || 1;
+      setPercentageBreakdown(
+        Array.from({ length: num }, (_, i) => ({
+          person: i + 1,
+          percentage: 0,
+        }))
+      );
+    } else if (method === 'itemized') {
+      // Initialize itemized breakdown
+      const num = parseInt(numPeople) || 1;
+      setItemizedBreakdown(
+        Array.from({ length: num }, (_, i) => ({
+          person: i + 1,
+          items: [],
+        }))
+      );
+    }
+  };
+
+  const handlePercentageChange = (personIndex, percentage) => {
+    const updated = [...percentageBreakdown];
+    updated[personIndex].percentage = parseFloat(percentage) || 0;
+    setPercentageBreakdown(updated);
+  };
+
+  const isItemSelectedByAnotherPerson = (itemIndex, currentPersonIndex) => {
+    if (!itemizedBreakdown || itemizedBreakdown.length === 0) {
+      return false;
+    }
+    for (let i = 0; i < itemizedBreakdown.length; i++) {
+      if (i !== currentPersonIndex && itemizedBreakdown[i] && itemizedBreakdown[i].items && itemizedBreakdown[i].items.includes(itemIndex)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const handleItemSelection = (personIndex, itemIndex) => {
+    // Don't allow selection if another person already has this item
+    if (isItemSelectedByAnotherPerson(itemIndex, personIndex)) {
+      return;
+    }
+
+    const updated = [...itemizedBreakdown];
+    if (updated[personIndex] && updated[personIndex].items) {
+      if (!updated[personIndex].items.includes(itemIndex)) {
+        updated[personIndex].items.push(itemIndex);
+      } else {
+        updated[personIndex].items = updated[personIndex].items.filter(i => i !== itemIndex);
+      }
+      setItemizedBreakdown(updated);
+    }
+  };
+
+  // Calculate total fees (tax + tip + ccFee)
+  const getTotalFees = () => {
+    return (receiptData.tax || 0) + (receiptData.tip || 0) + (receiptData.ccFee || 0);
+  };
+
   const handleSave = () => {
     if (receiptData) {
       const updatedData = {
         ...receiptData,
         startCurrency,
         endCurrency,
+        splitMethod,
+        splitDetails: {
+          numPeople: parseInt(numPeople) || 1,
+          ...(splitMethod === 'dutch' && {}),
+          ...(splitMethod === 'percentage' && { percentageBreakdown }),
+          ...(splitMethod === 'itemized' && { itemizedBreakdown }),
+        },
       };
       updateReceipt(updatedData);
     }
@@ -116,6 +217,222 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
       </SafeAreaView>
     );
   }
+
+  const renderSplitMethodSection = () => {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Split Method</Text>
+
+        {/* Split Method Options */}
+        <View style={styles.splitMethodContainer}>
+          <TouchableOpacity
+            style={[
+              styles.splitMethodButton,
+              splitMethod === 'dutch' && styles.splitMethodButtonActive,
+            ]}
+            onPress={() => handleSplitMethodChange('dutch')}
+          >
+            <Text
+              style={[
+                styles.splitMethodText,
+                splitMethod === 'dutch' && styles.splitMethodTextActive,
+              ]}
+            >
+              Dutch
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.splitMethodButton,
+              splitMethod === 'percentage' && styles.splitMethodButtonActive,
+            ]}
+            onPress={() => handleSplitMethodChange('percentage')}
+          >
+            <Text
+              style={[
+                styles.splitMethodText,
+                splitMethod === 'percentage' && styles.splitMethodTextActive,
+              ]}
+            >
+              %
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.splitMethodButton,
+              splitMethod === 'itemized' && styles.splitMethodButtonActive,
+            ]}
+            onPress={() => handleSplitMethodChange('itemized')}
+          >
+            <Text
+              style={[
+                styles.splitMethodText,
+                splitMethod === 'itemized' && styles.splitMethodTextActive,
+              ]}
+            >
+              Itemized
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Number of People Input */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Number of People:</Text>
+          <View style={styles.numPeopleInputContainer}>
+            <TouchableOpacity
+              onPress={() => {
+                const current = parseInt(numPeople) || 1;
+                if (current > 1) {
+                  handleNumPeopleChange((current - 1).toString());
+                }
+              }}
+              style={styles.numButtonMinus}
+            >
+              <Text style={styles.numButtonText}>−</Text>
+            </TouchableOpacity>
+
+            <TextInput
+              style={styles.numPeopleInput}
+              value={numPeople}
+              onChangeText={handleNumPeopleChange}
+              keyboardType="number-pad"
+              placeholder="1"
+            />
+
+            <TouchableOpacity
+              onPress={() => {
+                const current = parseInt(numPeople) || 1;
+                handleNumPeopleChange((current + 1).toString());
+              }}
+              style={styles.numButtonPlus}
+            >
+              <Text style={[styles.numButtonText, { color: '#fff' }]}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Dutch Split Details */}
+        {splitMethod === 'dutch' && (
+          <View style={styles.splitDetails}>
+            <View style={styles.splitDetailRow}>
+              <Text style={styles.splitDetailLabel}>Each person pays:</Text>
+              <Text style={styles.splitDetailValue}>
+                ${(receiptData.total / (parseInt(numPeople) || 1)).toFixed(2)}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Percentage Split Details */}
+        {splitMethod === 'percentage' && (
+          <View style={styles.splitDetails}>
+            {percentageBreakdown.map((entry, index) => (
+              <View key={index} style={styles.percentageRow}>
+                <Text style={styles.percentageLabel} numberOfLines={1}>Person {entry.person}:</Text>
+                <View style={styles.percentageInputContainer}>
+                  <TextInput
+                    style={styles.percentageInput}
+                    value={entry.percentage.toString()}
+                    onChangeText={(text) => handlePercentageChange(index, text)}
+                    keyboardType="decimal-pad"
+                    placeholder="0%"
+                  />
+                  <Text style={styles.percentageSymbol}>%</Text>
+                </View>
+                <Text style={styles.percentageAmount}>
+                  ${(((receiptData.subtotal || 0) + getTotalFees()) * entry.percentage / 100).toFixed(2)}
+                </Text>
+              </View>
+            ))}
+            <View style={styles.percentageTotal}>
+              <Text style={styles.percentageTotalLabel}>Total Percentage:</Text>
+              <Text
+                style={[
+                  styles.percentageTotalValue,
+                  {
+                    color:
+                      percentageBreakdown.reduce((sum, p) => sum + p.percentage, 0) ===
+                      100
+                        ? '#34C759'
+                        : '#FF3B30',
+                  },
+                ]}
+              >
+                {percentageBreakdown.reduce((sum, p) => sum + p.percentage, 0).toFixed(1)}%
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Itemized Split Details */}
+        {splitMethod === 'itemized' && (
+          <View style={styles.splitDetails}>
+            {Array.from({ length: parseInt(numPeople) || 1 }, (_, i) => i).map((personIndex) => (
+              <View key={personIndex} style={styles.itemizedPersonSection}>
+                <Text style={styles.itemizedPersonTitle}>Person {personIndex + 1}</Text>
+                <View style={styles.itemizedItemsList}>
+                  {receiptData.items?.map((item, itemIndex) => {
+                    const isSelectedByAnotherPerson = isItemSelectedByAnotherPerson(itemIndex, personIndex);
+                    const isSelectedByThisPerson = itemizedBreakdown[personIndex]?.items?.includes(itemIndex);
+                    return (
+                      <TouchableOpacity
+                        key={itemIndex}
+                        style={[
+                          styles.itemizedItemRow,
+                          isSelectedByAnotherPerson && !isSelectedByThisPerson && styles.itemizedItemRowDisabled,
+                        ]}
+                        onPress={() => handleItemSelection(personIndex, itemIndex)}
+                        disabled={isSelectedByAnotherPerson && !isSelectedByThisPerson}
+                      >
+                        <View style={[
+                          styles.itemizedCheckbox,
+                          isSelectedByAnotherPerson && !isSelectedByThisPerson && styles.itemizedCheckboxDisabled,
+                        ]}>
+                          {isSelectedByThisPerson && (
+                            <Ionicons name="checkmark" size={16} color="#007AFF" />
+                          )}
+                        </View>
+                        <View style={styles.itemizedItemInfo}>
+                          <Text style={[
+                            styles.itemizedItemName,
+                            isSelectedByAnotherPerson && !isSelectedByThisPerson && styles.itemizedItemNameDisabled,
+                          ]}>
+                            {item.name}
+                          </Text>
+                          <Text style={[
+                            styles.itemizedItemPrice,
+                            isSelectedByAnotherPerson && !isSelectedByThisPerson && styles.itemizedItemPriceDisabled,
+                          ]}>
+                            ${item.subtotal.toFixed(2)}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <View style={styles.itemizedPersonTotal}>
+                  <Text style={styles.itemizedPersonTotalLabel}>Total for Person {personIndex + 1}:</Text>
+                  <Text style={styles.itemizedPersonTotalValue}>
+                    ${(
+                      ((itemizedBreakdown[personIndex]?.items || []).reduce(
+                        (sum, idx) => sum + (receiptData.items?.[idx]?.subtotal || 0),
+                        0
+                      )) +
+                      ((receiptData.tax || 0) / (parseInt(numPeople) || 1)) +
+                      ((receiptData.tip || 0) / (parseInt(numPeople) || 1)) +
+                      ((receiptData.ccFee || 0) / (parseInt(numPeople) || 1))
+                    ).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   // Determine which currency is currently being selected
   const targetCurrency = activeDropdownType === 'start' ? startCurrency : endCurrency;
@@ -274,6 +591,9 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
                 : 'Scanned Receipt'}
             </Text>
           </View>
+
+          {/* Split Method Section */}
+          {renderSplitMethodSection()}
 
           {/* Currency Selection - Using custom Dropdown (now just buttons) */}
           <View style={styles.section}>
@@ -438,6 +758,244 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     fontStyle: 'italic',
+  },
+
+  /* Split Method Styles */
+  splitMethodContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  splitMethodButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splitMethodButtonActive: {
+    borderColor: '#007AFF',
+    backgroundColor: '#f0f8ff',
+  },
+  splitMethodText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  splitMethodTextActive: {
+    color: '#007AFF',
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  numPeopleInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  numButtonMinus: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  numPeopleInput: {
+    flex: 1,
+    marginHorizontal: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  numButtonPlus: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numButtonText: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  splitDetails: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+  },
+  splitDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  splitDetailLabel: {
+    fontSize: 15,
+    color: '#666',
+  },
+  splitDetailValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+
+  /* Percentage Split Styles */
+  percentageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  percentageLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+    width: 80,
+    flexShrink: 0,
+  },
+  percentageInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+  },
+  percentageInput: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  percentageSymbol: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#666',
+  },
+  percentageAmount: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    minWidth: 60,
+    textAlign: 'right',
+  },
+  percentageTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  percentageTotalLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  percentageTotalValue: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  /* Itemized Split Styles */
+  itemizedPersonSection: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  itemizedPersonTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  itemizedItemsList: {
+    marginBottom: 10,
+  },
+  itemizedItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  itemizedCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  itemizedItemInfo: {
+    flex: 1,
+  },
+  itemizedItemName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 2,
+  },
+  itemizedItemPrice: {
+    fontSize: 14,
+    color: '#666',
+  },
+  itemizedItemRowDisabled: {
+    opacity: 0.5,
+  },
+  itemizedCheckboxDisabled: {
+    borderColor: '#ccc',
+    backgroundColor: '#f5f5f5',
+  },
+  itemizedItemNameDisabled: {
+    color: '#999',
+  },
+  itemizedItemPriceDisabled: {
+    color: '#bbb',
+  },
+  itemizedPersonTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+    backgroundColor: '#f0f8ff',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  itemizedPersonTotalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  itemizedPersonTotalValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 
   /* currency/picker styles */
