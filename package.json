@@ -2,7 +2,7 @@
   "name": "wicse-design-team-fall-2025",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "client/index.js",
   "scripts": {
     "client": "cd client && npx expo start",
     "server": "cd server && npm run dev",

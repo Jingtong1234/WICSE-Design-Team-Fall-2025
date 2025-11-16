@@ -11,6 +11,10 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../../firebaseConfig"; // adjust path if needed
+import { v4 as uuidv4 } from "uuid";
+
 
 const ScanReceiptScreen = ({ navigation }) => {
   const [image, setImage] = useState(null);
@@ -67,61 +71,61 @@ const ScanReceiptScreen = ({ navigation }) => {
     }
   };
 
-  const scanReceipt = async () => {
-    if (!image) {
-      Alert.alert('No Image', 'Please take or select a photo first.');
-      return;
+const scanReceipt = async () => {
+  if (!image) {
+    Alert.alert('No Image', 'Please take or select a photo first.');
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    // Convert the image to a blob so Firebase can upload it
+    const response = await fetch(image.uri);
+    const blob = await response.blob();
+
+    // Generate a unique file path for each upload
+    const fileName = `receipts/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
+    const storageRef = ref(storage, fileName);
+
+    // Upload to Firebase
+    await uploadBytes(storageRef, blob);
+
+    // Get the downloadable URL
+    const downloadURL = await getDownloadURL(storageRef);
+    console.log("Uploaded Image URL:", downloadURL);
+
+    // Now send that URL to your backend
+    const BACKEND_URL = "http://10.136.38.106:3001"; // update port if needed
+    const responseFromAPI = await fetch(`${BACKEND_URL}/api/receipts/scan-url`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrl: downloadURL }), // this variable now exists
+    });
+
+    const data = await responseFromAPI.json();
+
+
+    if (responseFromAPI.ok) {
+      navigation.navigate("ReviewReceiptScreen", { receiptData: data });
+    } else {
+      throw new Error(data.error || `Failed to scan receipt ${JSON.stringify(data)}`);
     }
+  } catch (error) {
+    console.error("Error uploading or scanning:", error);
+    Alert.alert(
+      "Scan Failed",
+      "Could not upload or process the receipt. Would you like to enter details manually?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Enter Manually", onPress: () => navigation.navigate("ManualEntry") },
+      ]
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-    setIsLoading(true);
-
-    try {
-      // Create form data to send file directly
-      const formData = new FormData();
-      
-      // Get file name from URI
-      const filename = image.uri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-      formData.append('receipt', {
-        uri: image.uri,
-        name: filename,
-        type: type,
-      });
-
-      // Update this URL to match your backend server
-      const BACKEND_URL = 'http://10.136.25.194:3000'; // Change to your server URL
-      const response = await fetch(`${BACKEND_URL}/api/receipts/scan`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Navigate to review/edit screen with scanned data
-        navigation.navigate('ReviewReceipt', { receiptData: data });
-      } else {
-        throw new Error(data.error || 'Failed to scan receipt');
-      }
-    } catch (error) {
-      console.error('Error scanning receipt:', error);
-      Alert.alert(
-        'Scan Failed',
-        'Could not process the receipt. Would you like to enter details manually?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Enter Manually', onPress: () => navigation.navigate('ManualEntry') },
-        ]
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const retakePhoto = () => {
     setImage(null);
