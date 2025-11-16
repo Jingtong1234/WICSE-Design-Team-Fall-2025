@@ -172,6 +172,54 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
     return (receiptData.tax || 0) + (receiptData.tip || 0) + (receiptData.ccFee || 0);
   };
 
+  // Helper function to create a unique item ID that includes quantity instance
+  // For item at index 0 with quantity 2, it will create IDs "0-0" and "0-1"
+  const getExpandedItemsList = () => {
+    const expanded = [];
+    receiptData.items?.forEach((item, itemIndex) => {
+      const quantity = item.quantity || 1;
+      for (let i = 0; i < quantity; i++) {
+        expanded.push({
+          originalIndex: itemIndex,
+          quantityInstance: i,
+          uniqueId: `${itemIndex}-${i}`,
+          item: item,
+        });
+      }
+    });
+    return expanded;
+  };
+
+  // Check if an expanded item is selected by another person
+  const isExpandedItemSelectedByAnotherPerson = (uniqueId, currentPersonIndex) => {
+    if (!itemizedBreakdown || itemizedBreakdown.length === 0) {
+      return false;
+    }
+    for (let i = 0; i < itemizedBreakdown.length; i++) {
+      if (i !== currentPersonIndex && itemizedBreakdown[i] && itemizedBreakdown[i].items && itemizedBreakdown[i].items.includes(uniqueId)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Handle selection of expanded items
+  const handleExpandedItemSelection = (personIndex, uniqueId) => {
+    if (isExpandedItemSelectedByAnotherPerson(uniqueId, personIndex)) {
+      return;
+    }
+
+    const updated = [...itemizedBreakdown];
+    if (updated[personIndex] && updated[personIndex].items) {
+      if (!updated[personIndex].items.includes(uniqueId)) {
+        updated[personIndex].items.push(uniqueId);
+      } else {
+        updated[personIndex].items = updated[personIndex].items.filter(i => i !== uniqueId);
+      }
+      setItemizedBreakdown(updated);
+    }
+  };
+
   const handleSave = () => {
     if (receiptData) {
       const updatedData = {
@@ -373,17 +421,17 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
               <View key={personIndex} style={styles.itemizedPersonSection}>
                 <Text style={styles.itemizedPersonTitle}>Person {personIndex + 1}</Text>
                 <View style={styles.itemizedItemsList}>
-                  {receiptData.items?.map((item, itemIndex) => {
-                    const isSelectedByAnotherPerson = isItemSelectedByAnotherPerson(itemIndex, personIndex);
-                    const isSelectedByThisPerson = itemizedBreakdown[personIndex]?.items?.includes(itemIndex);
+                  {getExpandedItemsList().map((expandedItem) => {
+                    const isSelectedByAnotherPerson = isExpandedItemSelectedByAnotherPerson(expandedItem.uniqueId, personIndex);
+                    const isSelectedByThisPerson = itemizedBreakdown[personIndex]?.items?.includes(expandedItem.uniqueId);
                     return (
                       <TouchableOpacity
-                        key={itemIndex}
+                        key={expandedItem.uniqueId}
                         style={[
                           styles.itemizedItemRow,
                           isSelectedByAnotherPerson && !isSelectedByThisPerson && styles.itemizedItemRowDisabled,
                         ]}
-                        onPress={() => handleItemSelection(personIndex, itemIndex)}
+                        onPress={() => handleExpandedItemSelection(personIndex, expandedItem.uniqueId)}
                         disabled={isSelectedByAnotherPerson && !isSelectedByThisPerson}
                       >
                         <View style={[
@@ -399,13 +447,13 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
                             styles.itemizedItemName,
                             isSelectedByAnotherPerson && !isSelectedByThisPerson && styles.itemizedItemNameDisabled,
                           ]}>
-                            {item.name}
+                            {expandedItem.item.name}
                           </Text>
                           <Text style={[
                             styles.itemizedItemPrice,
-                            isSelectedByAnotherPerson && !isSelectedByThisPerson && styles.itemizedItemPriceDisabled,
+                             isSelectedByAnotherPerson && !isSelectedByThisPerson && styles.itemizedItemPriceDisabled,
                           ]}>
-                            ${item.subtotal.toFixed(2)}
+                              ${(expandedItem.item.subtotal / (expandedItem.item.quantity || 1)).toFixed(2)}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -417,7 +465,10 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
                   <Text style={styles.itemizedPersonTotalValue}>
                     ${(
                       ((itemizedBreakdown[personIndex]?.items || []).reduce(
-                        (sum, idx) => sum + (receiptData.items?.[idx]?.subtotal || 0),
+                        (sum, uniqueId) => {
+                          const expandedItem = getExpandedItemsList().find(ei => ei.uniqueId === uniqueId);
+                            return sum + ((expandedItem?.item?.subtotal || 0) / (expandedItem?.item?.quantity || 1));
+                        },
                         0
                       )) +
                       ((receiptData.tax || 0) / (parseInt(numPeople) || 1)) +
