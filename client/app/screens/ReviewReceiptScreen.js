@@ -663,6 +663,8 @@ const ReviewReceiptScreen = ({ navigation, route }) => {
               selectedValue={endCurrency}
               onOpen={() => setActiveDropdownType('end')}
             />
+
+            {/* Credit Card Fee is entered on Manual Entry screen and stored on the receipt */}
           </View>
         </View>
       </ScrollView>
@@ -969,6 +971,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  /* (Credit card fee UI moved to ManualEntryScreen) */
 
   /* Itemized Split Styles */
   itemizedPersonSection: {

@@ -30,6 +30,10 @@ const ManualEntryScreen = ({ navigation }) => {
     ccFee: '',
     merchant: '',
   });
+  const [ccFeeMode, setCcFeeMode] = useState('amount'); // 'amount' or 'percent'
+  const [ccFeeValue, setCcFeeValue] = useState(
+    receiptDetails.ccFee ? receiptDetails.ccFee.toString() : ''
+  );
 
   const addItem = () => {
     if (!currentItem.name.trim() || !currentItem.price.trim()) {
@@ -69,7 +73,13 @@ const ManualEntryScreen = ({ navigation }) => {
     const subtotal = calculateSubtotal();
     const tax = parseFloat(receiptDetails.tax) || 0;
     const tip = parseFloat(receiptDetails.tip) || 0;
-    const ccFee = parseFloat(receiptDetails.ccFee) || 0;
+    // compute cc fee based on mode
+    const parsed = parseFloat(ccFeeValue);
+    let ccFee = parseFloat(receiptDetails.ccFee) || 0;
+    if (!isNaN(parsed) && ccFeeValue !== '') {
+      const base = subtotal + tax + tip;
+      ccFee = ccFeeMode === 'percent' ? (base * parsed) / 100 : parsed;
+    }
     return subtotal + tax + tip + ccFee;
   };
 
@@ -79,14 +89,28 @@ const ManualEntryScreen = ({ navigation }) => {
       return;
     }
 
+    // determine final ccFee and ccFeePercent
+    const subtotal = calculateSubtotal();
+    const tax = parseFloat(receiptDetails.tax) || 0;
+    const tip = parseFloat(receiptDetails.tip) || 0;
+    const parsed = parseFloat(ccFeeValue);
+    let finalCcFee = parseFloat(receiptDetails.ccFee) || 0;
+    let ccFeePercent = undefined;
+    if (!isNaN(parsed) && ccFeeValue !== '') {
+      const base = subtotal + tax + tip;
+      finalCcFee = ccFeeMode === 'percent' ? (base * parsed) / 100 : parsed;
+      if (ccFeeMode === 'percent') ccFeePercent = parsed;
+    }
+
     const receiptData = {
       items: items,
       merchant: receiptDetails.merchant.trim(),
-      subtotal: calculateSubtotal(),
-      tax: parseFloat(receiptDetails.tax) || 0,
-      tip: parseFloat(receiptDetails.tip) || 0,
-      ccFee: parseFloat(receiptDetails.ccFee) || 0,
-      total: calculateTotal(),
+      subtotal: subtotal,
+      tax: tax,
+      tip: tip,
+      ccFee: finalCcFee,
+      ccFeePercent: ccFeePercent,
+      total: subtotal + tax + tip + finalCcFee,
       date: new Date().toISOString(),
       type: 'manual',
     };
@@ -241,16 +265,41 @@ const ManualEntryScreen = ({ navigation }) => {
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Credit Card Fee</Text>
-                <TextInput
-                  style={styles.input}
-                  value={receiptDetails.ccFee}
-                  onChangeText={(text) =>
-                    setReceiptDetails({ ...receiptDetails, ccFee: text })
-                  }
-                  placeholder="0.00"
-                  placeholderTextColor="#999"
-                  keyboardType="decimal-pad"
-                />
+                <View style={styles.ccFeeRow}>
+                  <View style={styles.ccFeeToggleContainer}>
+                    <TouchableOpacity
+                      style={[styles.ccFeeToggle, ccFeeMode === 'amount' && styles.ccFeeToggleActive]}
+                      onPress={() => setCcFeeMode('amount')}
+                    >
+                      <Text style={[styles.ccFeeToggleText, ccFeeMode === 'amount' && styles.ccFeeToggleTextActive]}>$</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.ccFeeToggle, ccFeeMode === 'percent' && styles.ccFeeToggleActive]}
+                      onPress={() => setCcFeeMode('percent')}
+                    >
+                      <Text style={[styles.ccFeeToggleText, ccFeeMode === 'percent' && styles.ccFeeToggleTextActive]}>%</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <TextInput
+                    style={styles.ccFeeInput}
+                    value={ccFeeValue}
+                    onChangeText={setCcFeeValue}
+                    keyboardType="decimal-pad"
+                    placeholder={ccFeeMode === 'percent' ? '0' : '0.00'}
+                  />
+                </View>
+                <Text style={styles.ccFeeHint}>
+                  Current fee: ${(() => {
+                    const base = calculateSubtotal() + (parseFloat(receiptDetails.tax) || 0) + (parseFloat(receiptDetails.tip) || 0);
+                    const parsed = parseFloat(ccFeeValue);
+                    if (!isNaN(parsed) && ccFeeValue !== '') {
+                      return (ccFeeMode === 'percent' ? (base * parsed) / 100 : parsed).toFixed(2);
+                    }
+                    return ((parseFloat(receiptDetails.ccFee) || 0)).toFixed(2);
+                  })()}
+                </Text>
               </View>
 
               <View style={[styles.totalRow, styles.finalTotalRow]}>
@@ -435,6 +484,50 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  ccFeeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ccFeeToggleContainer: {
+    flexDirection: 'row',
+    marginRight: 8,
+  },
+  ccFeeToggle: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginRight: 6,
+    backgroundColor: '#fff',
+  },
+  ccFeeToggleActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  ccFeeToggleText: {
+    color: '#333',
+    fontWeight: '600',
+  },
+  ccFeeToggleTextActive: {
+    color: '#fff',
+  },
+  ccFeeInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333',
+    backgroundColor: '#fff',
+    width: 120,
+  },
+  ccFeeHint: {
+    marginTop: 6,
+    fontSize: 13,
+    color: '#666',
   },
   saveButtonContainer: {
     padding: 16,
