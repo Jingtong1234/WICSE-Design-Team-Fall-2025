@@ -1,4 +1,6 @@
 require('dotenv').config();
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
 
 const API_KEY = process.env.EXCHANGE_RATE_API_KEY;
 const BASE_URL = 'https://v6.exchangerate-api.com/v6';
